@@ -2,34 +2,31 @@ package goapitosdk
 
 import (
 	"context"
-	"time"
+
+	"gitlab.com/apito.io/buffers/protobuff"
+	"gitlab.com/apito.io/buffers/shared"
 )
 
-// Project represents the project details
-type Project struct {
-	ID                  string                 `json:"id,omitempty"`
-	Name                string                 `json:"name,omitempty"`
-	Description         string                 `json:"description,omitempty"`
-	CreatedAt           time.Time              `json:"created_at,omitempty"`
-	UpdatedAt           time.Time              `json:"updated_at,omitempty"`
-	Settings            map[string]interface{} `json:"settings,omitempty"`
-	TenantModelName     string                 `json:"tenant_model_name,omitempty"`
-	ProjectSecretKey    string                 `json:"project_secret_key,omitempty"`
-	Status              string                 `json:"status,omitempty"`
-	OrganizationID      string                 `json:"organization_id,omitempty"`
-	DatabaseCredentials *DriverCredentials     `json:"database_credentials,omitempty"`
+// TypedSearchResult represents a search result with typed data
+type TypedSearchResult[T any] struct {
+	Results []*TypedDocumentStructure[T] `json:"results"`
+	Count   int                          `json:"count"`
 }
 
-// DriverCredentials represents database connection credentials
-type DriverCredentials struct {
-	Host      string   `json:"host,omitempty"`
-	Port      string   `json:"port,omitempty"`
-	Database  []string `json:"db,omitempty"`
-	User      []string `json:"user,omitempty"`
-	Password  []string `json:"password,omitempty"`
-	AccessKey []string `json:"access_key,omitempty"`
-	SecretKey []string `json:"secret_key,omitempty"`
-	Driver    string   `json:"driver,omitempty"`
+// TypedDocumentStructure represents a document with typed data
+type TypedDocumentStructure[T any] struct {
+	Key           string               `json:"_key,omitempty" firestore:"_key,omitempty" bson:"_key,omitempty"`
+	Data          T                    `json:"data,omitempty" firestore:"data,omitempty" bson:"data,omitempty"`
+	Meta          *protobuff.MetaField `json:"meta,omitempty" firestore:"meta,omitempty" bson:"meta,omitempty"`
+	ID            string               `json:"id,omitempty" firestore:"id,omitempty" bson:"id,omitempty"`
+	ExpireAt      int64                `json:"expire_at,omitempty" firestore:"expire_at,omitempty" bson:"expire_at,omitempty"`
+	RelationDocID string               `json:"relation_doc_id,omitempty" firestore:"relation_doc_id,omitempty" bson:"relation_doc_id,omitempty"`
+	Type          string               `json:"type,omitempty" firestore:"type,omitempty" bson:"type,omitempty"`
+}
+
+type SearchResult struct {
+	Results []*shared.DefaultDocumentStructure `json:"results"`
+	Count   int                                `json:"count"`
 }
 
 // AuditData represents audit log data
@@ -80,22 +77,22 @@ type InjectedDBOperationInterface interface {
 	GenerateTenantToken(ctx context.Context, token string, tenantID string) (string, error)
 
 	// GetProjectDetails retrieves project details for the given project ID
-	GetProjectDetails(ctx context.Context, projectID string) (*Project, error)
+	//GetProjectDetails(ctx context.Context, projectID string) (*protobuff.Project, error)
 
 	// GetSingleResource retrieves a single resource by model and ID, with optional single page data
-	GetSingleResource(ctx context.Context, model, _id string, singlePageData bool) (interface{}, error)
+	GetSingleResource(ctx context.Context, model, _id string, singlePageData bool) (*shared.DefaultDocumentStructure, error)
 
 	// SearchResources searches for resources in the specified model using the provided filter
-	SearchResources(ctx context.Context, model string, filter map[string]interface{}, aggregate bool) (interface{}, error)
+	SearchResources(ctx context.Context, model string, filter map[string]interface{}, aggregate bool) (*SearchResult, error)
 
 	// GetRelationDocuments retrieves related documents for the given ID and connection parameters
-	GetRelationDocuments(ctx context.Context, _id string, connection map[string]interface{}) (interface{}, error)
+	GetRelationDocuments(ctx context.Context, _id string, connection map[string]interface{}) (*SearchResult, error)
 
 	// CreateNewResource creates a new resource in the specified model with the given data and connections
-	CreateNewResource(ctx context.Context, model string, data map[string]interface{}, connection map[string]interface{}) (interface{}, error)
+	CreateNewResource(ctx context.Context, model string, data map[string]interface{}, connection map[string]interface{}) (*shared.DefaultDocumentStructure, error)
 
 	// UpdateResource updates an existing resource by model and ID, with optional single page data, data updates, and connection changes
-	UpdateResource(ctx context.Context, model, _id string, singlePageData bool, data map[string]interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (interface{}, error)
+	UpdateResource(ctx context.Context, model, _id string, singlePageData bool, data map[string]interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*shared.DefaultDocumentStructure, error)
 
 	// DeleteResource deletes a resource by model and ID
 	DeleteResource(ctx context.Context, model, _id string) error
@@ -105,4 +102,16 @@ type InjectedDBOperationInterface interface {
 
 	// Debug is used to debug the plugin, you can pass data here to debug the plugin
 	Debug(ctx context.Context, stage string, data ...interface{}) (interface{}, error)
+}
+
+// TypedOperationsInterface defines the typed operations interface
+// Since Go interfaces cannot have generic methods, we define these as separate generic functions
+// that will be implemented as methods on the Client struct
+type TypedOperationsInterface interface {
+	// Note: These will be implemented as generic methods on the Client struct
+	// GetSingleResourceTyped[T any](ctx context.Context, model, _id string, singlePageData bool) (*TypedDocumentStructure[T], error)
+	// SearchResourcesTyped[T any](ctx context.Context, model string, filter map[string]interface{}, aggregate bool) (*TypedSearchResult[T], error)
+	// GetRelationDocumentsTyped[T any](ctx context.Context, _id string, connection map[string]interface{}) (*TypedSearchResult[T], error)
+	// CreateNewResourceTyped[T any](ctx context.Context, model string, data map[string]interface{}, connection map[string]interface{}) (*TypedDocumentStructure[T], error)
+	// UpdateResourceTyped[T any](ctx context.Context, model, _id string, singlePageData bool, data map[string]interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*TypedDocumentStructure[T], error)
 }

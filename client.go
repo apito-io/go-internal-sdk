@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"gitlab.com/apito.io/buffers/shared"
 )
 
 // Client represents the Apito SDK client
@@ -66,7 +68,7 @@ func (c *Client) executeGraphQL(ctx context.Context, query string, variables map
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-APITO-KEY", c.apiKey)
+	req.Header.Set("X-Apito-Key", c.apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -133,8 +135,114 @@ func (c *Client) GenerateTenantToken(ctx context.Context, token string, tenantID
 	return tokenStr, nil
 }
 
-// GetProjectDetails retrieves project details for the given project ID
-func (c *Client) GetProjectDetails(ctx context.Context, projectID string) (*Project, error) {
+// =============================================================================
+// TYPED GENERIC FUNCTIONS
+// =============================================================================
+
+// GetSingleResourceTyped retrieves a single resource by model and ID with typed data
+func GetSingleResourceTyped[T any](c *Client, ctx context.Context, model, _id string, singlePageData bool) (*TypedDocumentStructure[T], error) {
+	rawDocument, err := c.GetSingleResource(ctx, model, _id, singlePageData)
+	if err != nil {
+		return nil, err
+	}
+	return convertToTypedDocument[T](rawDocument)
+}
+
+// SearchResourcesTyped searches for resources with typed results
+func SearchResourcesTyped[T any](c *Client, ctx context.Context, model string, filter map[string]interface{}, aggregate bool) (*TypedSearchResult[T], error) {
+	rawResults, err := c.SearchResources(ctx, model, filter, aggregate)
+	if err != nil {
+		return nil, err
+	}
+	return convertToTypedSearchResult[T](rawResults)
+}
+
+// GetRelationDocumentsTyped retrieves related documents with typed results
+func GetRelationDocumentsTyped[T any](c *Client, ctx context.Context, _id string, connection map[string]interface{}) (*TypedSearchResult[T], error) {
+	rawResults, err := c.GetRelationDocuments(ctx, _id, connection)
+	if err != nil {
+		return nil, err
+	}
+	return convertToTypedSearchResult[T](rawResults)
+}
+
+// CreateNewResourceTyped creates a new resource with typed result
+func CreateNewResourceTyped[T any](c *Client, ctx context.Context, model string, data map[string]interface{}, connection map[string]interface{}) (*TypedDocumentStructure[T], error) {
+	rawDocument, err := c.CreateNewResource(ctx, model, data, connection)
+	if err != nil {
+		return nil, err
+	}
+	return convertToTypedDocument[T](rawDocument)
+}
+
+// UpdateResourceTyped updates a resource with typed result
+func UpdateResourceTyped[T any](c *Client, ctx context.Context, model, _id string, singlePageData bool, data map[string]interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*TypedDocumentStructure[T], error) {
+	rawDocument, err := c.UpdateResource(ctx, model, _id, singlePageData, data, connect, disconnect)
+	if err != nil {
+		return nil, err
+	}
+	return convertToTypedDocument[T](rawDocument)
+}
+
+// =============================================================================
+// HELPER FUNCTIONS FOR TYPE CONVERSION
+// =============================================================================
+
+// convertToTypedDocument converts a raw DefaultDocumentStructure to a typed document
+func convertToTypedDocument[T any](rawDoc *shared.DefaultDocumentStructure) (*TypedDocumentStructure[T], error) {
+	dataJSON, err := json.Marshal(rawDoc.Data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal raw data: %w", err)
+	}
+
+	var typedData T
+	if err := json.Unmarshal(dataJSON, &typedData); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal to typed data: %w", err)
+	}
+
+	return &TypedDocumentStructure[T]{
+		Key:           rawDoc.Key,
+		Data:          typedData,
+		Meta:          rawDoc.Meta,
+		ID:            rawDoc.ID,
+		ExpireAt:      parseExpireAt(rawDoc.ExpireAt),
+		RelationDocID: rawDoc.RelationDocID,
+		Type:          rawDoc.Type,
+	}, nil
+}
+
+// convertToTypedSearchResult converts a raw SearchResult to a typed search result
+func convertToTypedSearchResult[T any](rawResults *SearchResult) (*TypedSearchResult[T], error) {
+	typedResults := &TypedSearchResult[T]{
+		Count:   rawResults.Count,
+		Results: make([]*TypedDocumentStructure[T], len(rawResults.Results)),
+	}
+
+	for i, rawDoc := range rawResults.Results {
+		typedDoc, err := convertToTypedDocument[T](rawDoc)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert document at index %d: %w", i, err)
+		}
+		typedResults.Results[i] = typedDoc
+	}
+
+	return typedResults, nil
+}
+
+// parseExpireAt converts string expire_at to int64
+func parseExpireAt(expireAt string) int64 {
+	if expireAt == "" {
+		return 0
+	}
+	return 0 // Could implement actual parsing logic here
+}
+
+// =============================================================================
+// BACKWARD COMPATIBLE METHODS (Non-generic versions)
+// =============================================================================
+
+/* // GetProjectDetails retrieves project details for the given project ID
+func (c *Client) GetProjectDetails(ctx context.Context, projectID string) (*protobuff.Project, error) {
 	query := `
 		query GetProject($_id: String) {
 			getProject(_id: $_id) {
@@ -148,16 +256,6 @@ func (c *Client) GetProjectDetails(ctx context.Context, projectID string) (*Proj
 				project_secret_key
 				status
 				organization_id
-				database_credentials {
-					host
-					port
-					db
-					user
-					password
-					access_key
-					secret_key
-					driver
-				}
 			}
 		}
 	`
@@ -188,36 +286,35 @@ func (c *Client) GetProjectDetails(ctx context.Context, projectID string) (*Proj
 		return nil, fmt.Errorf("failed to marshal project data: %w", err)
 	}
 
-	var project Project
+	var project protobuff.Project
 	if err := json.Unmarshal(projectJSON, &project); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal project data: %w", err)
 	}
 
 	return &project, nil
-}
+} */
 
 // GetSingleResource retrieves a single resource by model and ID, with optional single page data
-func (c *Client) GetSingleResource(ctx context.Context, model, _id string, singlePageData bool) (interface{}, error) {
+func (c *Client) GetSingleResource(ctx context.Context, model, _id string, singlePageData bool) (*shared.DefaultDocumentStructure, error) {
 	query := `
 		query GetSingleData($model: String, $_id: String!, $single_page_data: Boolean) {
 			getSingleData(model: $model, _id: $_id, single_page_data: $single_page_data) {
-				_id
 				_key
-				created_at
-				updated_at
 				data
 				meta {
-					source_id
-					created_at
-					updated_at
-					status
-					revision
-					revision_at
+				created_at
+				updated_at
+				status
+				revision
+				revision_at
 				}
+				id
+				expire_at
+				relation_doc_id
+				type
 			}
 		}
 	`
-
 	variables := map[string]interface{}{
 		"model":            model,
 		"_id":              _id,
@@ -234,27 +331,41 @@ func (c *Client) GetSingleResource(ctx context.Context, model, _id string, singl
 		return nil, fmt.Errorf("unexpected response format")
 	}
 
-	return data["getSingleData"], nil
+	singleDataRaw, ok := data["getSingleData"]
+	if !ok {
+		return nil, fmt.Errorf("getSingleData not found in response")
+	}
+
+	// Convert interface{} to *shared.DefaultDocumentStructure
+	singleDataJSON, err := json.Marshal(singleDataRaw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal getSingleData: %w", err)
+	}
+
+	var document shared.DefaultDocumentStructure
+	if err := json.Unmarshal(singleDataJSON, &document); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal getSingleData: %w", err)
+	}
+
+	return &document, nil
 }
 
 // SearchResources searches for resources in the specified model using the provided filter
-func (c *Client) SearchResources(ctx context.Context, model string, filter map[string]interface{}, aggregate bool) (interface{}, error) {
+func (c *Client) SearchResources(ctx context.Context, model string, filter map[string]interface{}, aggregate bool) (*SearchResult, error) {
 	query := `
 		query GetModelData($model: String!, $page: Int, $limit: Int, $where: JSON, $search: String) {
 			getModelData(model: $model, page: $page, limit: $limit, where: $where, search: $search) {
 				results {
-					_id
-					_key
-					created_at
-					updated_at
+					id
+					relation_doc_id
 					data
+					type
+					expire_at
 					meta {
-						source_id
 						created_at
 						updated_at
 						status
-						revision
-						revision_at
+						root_revision_id
 					}
 				}
 				count
@@ -292,27 +403,41 @@ func (c *Client) SearchResources(ctx context.Context, model string, filter map[s
 		return nil, fmt.Errorf("unexpected response format")
 	}
 
-	return data["getModelData"], nil
+	modelDataRaw, ok := data["getModelData"]
+	if !ok {
+		return nil, fmt.Errorf("getModelData not found in response")
+	}
+
+	// Convert interface{} to SearchResult
+	modelDataJSON, err := json.Marshal(modelDataRaw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal getModelData: %w", err)
+	}
+
+	var searchResult SearchResult
+	if err := json.Unmarshal(modelDataJSON, &searchResult); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal getModelData: %w", err)
+	}
+
+	return &searchResult, nil
 }
 
 // GetRelationDocuments retrieves related documents for the given ID and connection parameters
-func (c *Client) GetRelationDocuments(ctx context.Context, _id string, connection map[string]interface{}) (interface{}, error) {
+func (c *Client) GetRelationDocuments(ctx context.Context, _id string, connection map[string]interface{}) (*SearchResult, error) {
 	query := `
-		query GetModelData($model: String!, $connection: ListAllDataDetailedOfAModelConnectionPayload) {
-			getModelData(model: $model, connection: $connection) {
+		query GetModelData($model: String!, $page: Int, $limit: Int, $where: JSON, $search: String, $connection : ListAllDataDetailedOfAModelConnectionPayload) {
+			getModelData(model: $model, page: $page, limit: $limit, where: $where, search: $search, connection: $connection) {
 				results {
-					_id
-					_key
-					created_at
-					updated_at
+					id
+					relation_doc_id
 					data
+					type
+					expire_at
 					meta {
-						source_id
 						created_at
 						updated_at
 						status
-						revision
-						revision_at
+						root_revision_id
 					}
 				}
 				count
@@ -321,8 +446,30 @@ func (c *Client) GetRelationDocuments(ctx context.Context, _id string, connectio
 	`
 
 	variables := map[string]interface{}{
-		"model":      connection["model"],
 		"connection": connection,
+	}
+
+	// Extract model from connection if available
+	if model, ok := connection["model"].(string); ok {
+		variables["model"] = model
+	} else {
+		return nil, fmt.Errorf("model is required in connection parameters")
+	}
+
+	// Add filter parameters if provided in connection
+	if filter, ok := connection["filter"].(map[string]interface{}); ok {
+		if page, ok := filter["page"]; ok {
+			variables["page"] = page
+		}
+		if limit, ok := filter["limit"]; ok {
+			variables["limit"] = limit
+		}
+		if where, ok := filter["where"]; ok {
+			variables["where"] = where
+		}
+		if search, ok := filter["search"]; ok {
+			variables["search"] = search
+		}
 	}
 
 	response, err := c.executeGraphQL(ctx, query, variables)
@@ -335,23 +482,39 @@ func (c *Client) GetRelationDocuments(ctx context.Context, _id string, connectio
 		return nil, fmt.Errorf("unexpected response format")
 	}
 
-	return data["getModelData"], nil
+	modelDataRaw, ok := data["getModelData"]
+	if !ok {
+		return nil, fmt.Errorf("getModelData not found in response")
+	}
+
+	// Convert interface{} to SearchResult
+	modelDataJSON, err := json.Marshal(modelDataRaw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal getModelData: %w", err)
+	}
+
+	var searchResult SearchResult
+	if err := json.Unmarshal(modelDataJSON, &searchResult); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal getModelData: %w", err)
+	}
+
+	return &searchResult, nil
 }
 
 // CreateNewResource creates a new resource in the specified model with the given data and connections
-func (c *Client) CreateNewResource(ctx context.Context, model string, data map[string]interface{}, connection map[string]interface{}) (interface{}, error) {
-	// Note: This is a placeholder implementation as the exact mutation wasn't found in the schema
-	// You would need to implement the actual createNewData mutation based on your GraphQL schema
+func (c *Client) CreateNewResource(ctx context.Context, model string, data map[string]interface{}, connct map[string]interface{}) (*shared.DefaultDocumentStructure, error) {
 	query := `
-		mutation CreateNewData($model: String!, $data: JSON!, $connection: JSON) {
-			createNewData(model: $model, data: $data, connection: $connection) {
-				_id
-				_key
-				created_at
-				updated_at
+		mutation CreateNewData($model: String!, $data: JSON!, $connect: JSON) {
+			upsertModelData(
+				connect: $connect
+				model_name: $model
+				single_page_data: false
+				payload: $data
+			) {
+				id
+				type
 				data
 				meta {
-					source_id
 					created_at
 					updated_at
 					status
@@ -367,8 +530,8 @@ func (c *Client) CreateNewResource(ctx context.Context, model string, data map[s
 		"data":  data,
 	}
 
-	if connection != nil {
-		variables["connection"] = connection
+	if connct != nil {
+		variables["connect"] = connct
 	}
 
 	response, err := c.executeGraphQL(ctx, query, variables)
@@ -381,23 +544,41 @@ func (c *Client) CreateNewResource(ctx context.Context, model string, data map[s
 		return nil, fmt.Errorf("unexpected response format")
 	}
 
-	return responseData["createNewData"], nil
+	singleDataRaw, ok := responseData["upsertModelData"]
+	if !ok {
+		return nil, fmt.Errorf("upsertModelData not found in response")
+	}
+
+	// Convert interface{} to *shared.DefaultDocumentStructure
+	singleDataJSON, err := json.Marshal(singleDataRaw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal getSingleData: %w", err)
+	}
+
+	var document shared.DefaultDocumentStructure
+	if err := json.Unmarshal(singleDataJSON, &document); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal getSingleData: %w", err)
+	}
+
+	return &document, nil
 }
 
 // UpdateResource updates an existing resource by model and ID, with optional single page data, data updates, and connection changes
-func (c *Client) UpdateResource(ctx context.Context, model, _id string, singlePageData bool, data map[string]interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (interface{}, error) {
-	// Note: This is a placeholder implementation as the exact mutation wasn't found in the schema
-	// You would need to implement the actual updateData mutation based on your GraphQL schema
+func (c *Client) UpdateResource(ctx context.Context, model, _id string, singlePageData bool, data map[string]interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*shared.DefaultDocumentStructure, error) {
 	query := `
-		mutation UpdateData($model: String!, $_id: String!, $data: JSON!, $connect: JSON, $disconnect: JSON) {
-			updateData(model: $model, _id: $_id, data: $data, connect: $connect, disconnect: $disconnect) {
-				_id
-				_key
-				created_at
-				updated_at
+		mutation UpdateModelData($_id: String!, $model: String!, $data: JSON!, $connect: JSON, $disconnect: JSON) {
+			upsertModelData(
+				connect: $connect
+				model_name: $model
+				single_page_data: false
+				disconnect: $disconnect
+				_id: $_id
+				payload: $data
+			) {
+				id
+				type
 				data
 				meta {
-					source_id
 					created_at
 					updated_at
 					status
@@ -431,7 +612,23 @@ func (c *Client) UpdateResource(ctx context.Context, model, _id string, singlePa
 		return nil, fmt.Errorf("unexpected response format")
 	}
 
-	return responseData["updateData"], nil
+	singleDataRaw, ok := responseData["upsertModelData"]
+	if !ok {
+		return nil, fmt.Errorf("upsertModelData not found in response")
+	}
+
+	// Convert interface{} to *shared.DefaultDocumentStructure
+	singleDataJSON, err := json.Marshal(singleDataRaw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal getSingleData: %w", err)
+	}
+
+	var document shared.DefaultDocumentStructure
+	if err := json.Unmarshal(singleDataJSON, &document); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal getSingleData: %w", err)
+	}
+
+	return &document, nil
 }
 
 // DeleteResource deletes a resource by model and ID
@@ -440,8 +637,8 @@ func (c *Client) DeleteResource(ctx context.Context, model, _id string) error {
 	// You would need to implement the actual deleteData mutation based on your GraphQL schema
 	query := `
 		mutation DeleteData($model: String!, $_id: String!) {
-			deleteData(model: $model, _id: $_id) {
-				message
+			deleteModelData(model_name: $model, _id: $_id) {
+				id
 			}
 		}
 	`
