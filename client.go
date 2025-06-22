@@ -502,7 +502,7 @@ func (c *Client) GetRelationDocuments(ctx context.Context, _id string, connectio
 }
 
 // CreateNewResource creates a new resource in the specified model with the given data and connections
-func (c *Client) CreateNewResource(ctx context.Context, model string, data map[string]interface{}, connct map[string]interface{}) (*shared.DefaultDocumentStructure, error) {
+func (c *Client) CreateNewResource(ctx context.Context, model string, payload interface{}, connect map[string]interface{}) (*shared.DefaultDocumentStructure, error) {
 	query := `
 		mutation CreateNewData($model: String!, $data: JSON!, $connect: JSON) {
 			upsertModelData(
@@ -527,11 +527,11 @@ func (c *Client) CreateNewResource(ctx context.Context, model string, data map[s
 
 	variables := map[string]interface{}{
 		"model": model,
-		"data":  data,
+		"data":  payload,
 	}
 
-	if connct != nil {
-		variables["connect"] = connct
+	if connect != nil {
+		variables["connect"] = connect
 	}
 
 	response, err := c.executeGraphQL(ctx, query, variables)
@@ -564,7 +564,7 @@ func (c *Client) CreateNewResource(ctx context.Context, model string, data map[s
 }
 
 // UpdateResource updates an existing resource by model and ID, with optional single page data, data updates, and connection changes
-func (c *Client) UpdateResource(ctx context.Context, model, _id string, singlePageData bool, data map[string]interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*shared.DefaultDocumentStructure, error) {
+func (c *Client) UpdateResource(ctx context.Context, model, _id string, singlePageData bool, payload interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*shared.DefaultDocumentStructure, error) {
 	query := `
 		mutation UpdateModelData($_id: String!, $model: String!, $data: JSON!, $connect: JSON, $disconnect: JSON) {
 			upsertModelData(
@@ -592,7 +592,7 @@ func (c *Client) UpdateResource(ctx context.Context, model, _id string, singlePa
 	variables := map[string]interface{}{
 		"model": model,
 		"_id":   _id,
-		"data":  data,
+		"data":  payload,
 	}
 
 	if connect != nil {
