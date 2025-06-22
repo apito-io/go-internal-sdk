@@ -22,6 +22,8 @@ type TypedDocumentStructure[T any] struct {
 	ExpireAt      int64                `json:"expire_at,omitempty" firestore:"expire_at,omitempty" bson:"expire_at,omitempty"`
 	RelationDocID string               `json:"relation_doc_id,omitempty" firestore:"relation_doc_id,omitempty" bson:"relation_doc_id,omitempty"`
 	Type          string               `json:"type,omitempty" firestore:"type,omitempty" bson:"type,omitempty"`
+	TenantID      string               `json:"tenant_id,omitempty" firestore:"tenant_id,omitempty" bson:"tenant_id,omitempty"`
+	TenantModel   string               `json:"tenant_model,omitempty" firestore:"tenant_model,omitempty" bson:"tenant_model,omitempty"`
 }
 
 type SearchResult struct {
