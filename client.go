@@ -49,6 +49,12 @@ func NewClient(config Config) *Client {
 
 // executeGraphQL executes a GraphQL query or mutation
 func (c *Client) executeGraphQL(ctx context.Context, query string, variables map[string]interface{}) (*GraphQLResponse, error) {
+	
+	var tenantID string
+	if ctx.Value("tenant_id") != nil {
+		tenantID = ctx.Value("tenant_id").(string)
+	}
+
 	payload := map[string]interface{}{
 		"query": query,
 	}
@@ -69,6 +75,8 @@ func (c *Client) executeGraphQL(ctx context.Context, query string, variables map
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Apito-Key", c.apiKey)
+	req.Header.Set("X-Apito-Tenant-ID", tenantID)
+
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -502,14 +510,22 @@ func (c *Client) GetRelationDocuments(ctx context.Context, _id string, connectio
 }
 
 // CreateNewResource creates a new resource in the specified model with the given data and connections
-func (c *Client) CreateNewResource(ctx context.Context, model string, payload interface{}, connect map[string]interface{}) (*shared.DefaultDocumentStructure, error) {
+func (c *Client) CreateNewResource(ctx context.Context, model string, data map[string]interface{}, connect map[string]interface{}) (*shared.DefaultDocumentStructure, error) {
+	
+	var payload interface{}
+	if data["payload"] != nil {
+		payload = data["payload"]
+	} else {
+		return nil, fmt.Errorf("payload is required in data")
+	}
+	
 	query := `
-		mutation CreateNewData($model: String!, $data: JSON!, $connect: JSON) {
+		mutation CreateNewData($model: String!, $payload: JSON!, $connect: JSON) {
 			upsertModelData(
 				connect: $connect
 				model_name: $model
 				single_page_data: false
-				payload: $data
+				payload: $payload
 			) {
 				id
 				type
@@ -527,7 +543,7 @@ func (c *Client) CreateNewResource(ctx context.Context, model string, payload in
 
 	variables := map[string]interface{}{
 		"model": model,
-		"data":  payload,
+		"payload":  payload,
 	}
 
 	if connect != nil {
@@ -564,16 +580,25 @@ func (c *Client) CreateNewResource(ctx context.Context, model string, payload in
 }
 
 // UpdateResource updates an existing resource by model and ID, with optional single page data, data updates, and connection changes
-func (c *Client) UpdateResource(ctx context.Context, model, _id string, singlePageData bool, payload interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*shared.DefaultDocumentStructure, error) {
+func (c *Client) UpdateResource(ctx context.Context, model, _id string, singlePageData bool, data map[string]interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*shared.DefaultDocumentStructure, error) {
+	// fetch tenant_id from data if available
+
+	var payload interface{}
+	if data["payload"] != nil {
+		payload = data["payload"]
+	} else {
+		return nil, fmt.Errorf("payload is required in data")
+	}
+
 	query := `
-		mutation UpdateModelData($_id: String!, $model: String!, $data: JSON!, $connect: JSON, $disconnect: JSON) {
+		mutation UpdateModelData($_id: String!, $model: String!, $payload: JSON!, $connect: JSON, $disconnect: JSON) {
 			upsertModelData(
 				connect: $connect
 				model_name: $model
 				single_page_data: false
 				disconnect: $disconnect
 				_id: $_id
-				payload: $data
+				payload: $payload
 			) {
 				id
 				type
@@ -592,7 +617,7 @@ func (c *Client) UpdateResource(ctx context.Context, model, _id string, singlePa
 	variables := map[string]interface{}{
 		"model": model,
 		"_id":   _id,
-		"data":  payload,
+		"payload":  payload,
 	}
 
 	if connect != nil {

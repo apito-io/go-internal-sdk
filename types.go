@@ -91,10 +91,10 @@ type InjectedDBOperationInterface interface {
 	GetRelationDocuments(ctx context.Context, _id string, connection map[string]interface{}) (*SearchResult, error)
 
 	// CreateNewResource creates a new resource in the specified model with the given data and connections
-	CreateNewResource(ctx context.Context, model string, payload interface{}, connect map[string]interface{}) (*shared.DefaultDocumentStructure, error)
+	CreateNewResource(ctx context.Context, model string, data map[string]interface{}, connect map[string]interface{}) (*shared.DefaultDocumentStructure, error)
 
 	// UpdateResource updates an existing resource by model and ID, with optional single page data, data updates, and connection changes
-	UpdateResource(ctx context.Context, model, _id string, singlePageData bool, payload interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*shared.DefaultDocumentStructure, error)
+	UpdateResource(ctx context.Context, model, _id string, singlePageData bool, data map[string]interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*shared.DefaultDocumentStructure, error)
 
 	// DeleteResource deletes a resource by model and ID
 	DeleteResource(ctx context.Context, model, _id string) error
