@@ -75,7 +75,7 @@ type GraphQLErrorLocation struct {
 type CreateAndUpdateRequest struct {
 	ID string `json:"id"`
 	Model string `json:"model"`
-	Payload map[string]interface{} `json:"payload"`
+	Payload interface{} `json:"payload"`
 	Connect map[string]interface{} `json:"connect"`
 	Disconnect map[string]interface{} `json:"disconnect"`
 	SinglePageData bool `json:"single_page_data"`
