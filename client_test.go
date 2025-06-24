@@ -195,7 +195,11 @@ func TestCreateNewResource(t *testing.T) {
 		"executor_id":  "354c47b6-8693-4720-9a4d-7404a64386f9",
 	}
 
-	result, err := client.CreateNewResource(ctx, "task", data, connct)
+	result, err := client.CreateNewResource(ctx, &CreateAndUpdateRequest{
+		Model: "task",
+		Payload: data,
+		Connect: connct,
+	})
 	if err != nil {
 		t.Logf("CreateNewResource failed (may be expected): %v", err)
 		return
@@ -229,7 +233,13 @@ func TestUpdateResource(t *testing.T) {
 		"executor_id": "354c47b6-8693-4720-9a4d-7404a64386f9",
 	}
 
-	result, err := client.UpdateResource(ctx, "task", "a0d50ad7-3001-4be0-92bd-d0daac0af3a9", false, data, connct, disconnect)
+	result, err := client.UpdateResource(ctx, &CreateAndUpdateRequest{
+		Model: "task",
+		ID: "a0d50ad7-3001-4be0-92bd-d0daac0af3a9",
+		Payload: data,
+		Connect: connct,
+		Disconnect: disconnect,
+	})
 	if err != nil {
 		t.Logf("UpdateResource failed (may be expected): %v", err)
 		return

@@ -72,6 +72,16 @@ type GraphQLErrorLocation struct {
 	Column int `json:"column"`
 }
 
+type CreateAndUpdateRequest struct {
+	ID string `json:"id"`
+	Model string `json:"model"`
+	Payload map[string]interface{} `json:"payload"`
+	Connect map[string]interface{} `json:"connect"`
+	Disconnect map[string]interface{} `json:"disconnect"`
+	SinglePageData bool `json:"single_page_data"`
+	ForceUpdate bool `json:"force_update"`
+}
+
 // InjectedDBOperationInterface defines the interface that this SDK implements
 // This matches the interface from the main Apito Engine
 type InjectedDBOperationInterface interface {
@@ -91,10 +101,10 @@ type InjectedDBOperationInterface interface {
 	GetRelationDocuments(ctx context.Context, _id string, connection map[string]interface{}) (*SearchResult, error)
 
 	// CreateNewResource creates a new resource in the specified model with the given data and connections
-	CreateNewResource(ctx context.Context, model string, data map[string]interface{}, connect map[string]interface{}) (*shared.DefaultDocumentStructure, error)
+	CreateNewResource(ctx context.Context, request *CreateAndUpdateRequest) (*shared.DefaultDocumentStructure, error)
 
 	// UpdateResource updates an existing resource by model and ID, with optional single page data, data updates, and connection changes
-	UpdateResource(ctx context.Context, model, _id string, singlePageData bool, data map[string]interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*shared.DefaultDocumentStructure, error)
+	UpdateResource(ctx context.Context, request *CreateAndUpdateRequest) (*shared.DefaultDocumentStructure, error)
 
 	// DeleteResource deletes a resource by model and ID
 	DeleteResource(ctx context.Context, model, _id string) error

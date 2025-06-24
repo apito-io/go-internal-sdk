@@ -175,8 +175,8 @@ func GetRelationDocumentsTyped[T any](c *Client, ctx context.Context, _id string
 }
 
 // CreateNewResourceTyped creates a new resource with typed result
-func CreateNewResourceTyped[T any](c *Client, ctx context.Context, model string, data map[string]interface{}, connection map[string]interface{}) (*TypedDocumentStructure[T], error) {
-	rawDocument, err := c.CreateNewResource(ctx, model, data, connection)
+func CreateNewResourceTyped[T any](c *Client, ctx context.Context, request *CreateAndUpdateRequest) (*TypedDocumentStructure[T], error) {
+	rawDocument, err := c.CreateNewResource(ctx, request)
 	if err != nil {
 		return nil, err
 	}
@@ -184,8 +184,8 @@ func CreateNewResourceTyped[T any](c *Client, ctx context.Context, model string,
 }
 
 // UpdateResourceTyped updates a resource with typed result
-func UpdateResourceTyped[T any](c *Client, ctx context.Context, model, _id string, singlePageData bool, data map[string]interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*TypedDocumentStructure[T], error) {
-	rawDocument, err := c.UpdateResource(ctx, model, _id, singlePageData, data, connect, disconnect)
+func UpdateResourceTyped[T any](c *Client, ctx context.Context, request *CreateAndUpdateRequest) (*TypedDocumentStructure[T], error) {
+	rawDocument, err := c.UpdateResource(ctx, request)
 	if err != nil {
 		return nil, err
 	}
@@ -510,21 +510,22 @@ func (c *Client) GetRelationDocuments(ctx context.Context, _id string, connectio
 }
 
 // CreateNewResource creates a new resource in the specified model with the given data and connections
-func (c *Client) CreateNewResource(ctx context.Context, model string, data map[string]interface{}, connect map[string]interface{}) (*shared.DefaultDocumentStructure, error) {
+func (c *Client) CreateNewResource(ctx context.Context, request *CreateAndUpdateRequest) (*shared.DefaultDocumentStructure, error) {
 	
-	var payload interface{}
-	if data["payload"] != nil {
-		payload = data["payload"]
-	} else {
-		return nil, fmt.Errorf("payload is required in data")
+	if request.Model == "" {
+		return nil, fmt.Errorf("model is required")
+	}
+
+	if request.Payload == nil {
+		return nil, fmt.Errorf("payload is required")
 	}
 	
 	query := `
-		mutation CreateNewData($model: String!, $payload: JSON!, $connect: JSON) {
+		mutation CreateNewData($model: String!, $single_page_data: Boolean, $payload: JSON!, $connect: JSON) {
 			upsertModelData(
 				connect: $connect
 				model_name: $model
-				single_page_data: false
+				single_page_data: $single_page_data
 				payload: $payload
 			) {
 				id
@@ -542,12 +543,13 @@ func (c *Client) CreateNewResource(ctx context.Context, model string, data map[s
 	`
 
 	variables := map[string]interface{}{
-		"model": model,
-		"payload":  payload,
+		"model": request.Model,
+		"payload":  request.Payload,
+		"single_page_data": request.SinglePageData,
 	}
 
-	if connect != nil {
-		variables["connect"] = connect
+	if request.Connect != nil {
+		variables["connect"] = request.Connect
 	}
 
 	response, err := c.executeGraphQL(ctx, query, variables)
@@ -580,22 +582,28 @@ func (c *Client) CreateNewResource(ctx context.Context, model string, data map[s
 }
 
 // UpdateResource updates an existing resource by model and ID, with optional single page data, data updates, and connection changes
-func (c *Client) UpdateResource(ctx context.Context, model, _id string, singlePageData bool, data map[string]interface{}, connect map[string]interface{}, disconnect map[string]interface{}) (*shared.DefaultDocumentStructure, error) {
+func (c *Client) UpdateResource(ctx context.Context, request *CreateAndUpdateRequest) (*shared.DefaultDocumentStructure, error) {
 	// fetch tenant_id from data if available
 
-	var payload interface{}
-	if data["payload"] != nil {
-		payload = data["payload"]
-	} else {
-		return nil, fmt.Errorf("payload is required in data")
+	if request.ID == "" {
+		return nil, fmt.Errorf("id is required")
+	}
+
+	if request.Model == "" {
+		return nil, fmt.Errorf("model is required")
+	}
+
+	if request.Payload == nil {
+		return nil, fmt.Errorf("payload is required")
 	}
 
 	query := `
-		mutation UpdateModelData($_id: String!, $model: String!, $payload: JSON!, $connect: JSON, $disconnect: JSON) {
+		mutation UpdateModelData($_id: String!, $model: String!, $single_page_data: Boolean, $force_update: Boolean, $payload: JSON!, $connect: JSON, $disconnect: JSON) {
 			upsertModelData(
 				connect: $connect
 				model_name: $model
-				single_page_data: false
+				single_page_data: $single_page_data
+				force_update: $force_update
 				disconnect: $disconnect
 				_id: $_id
 				payload: $payload
@@ -615,16 +623,18 @@ func (c *Client) UpdateResource(ctx context.Context, model, _id string, singlePa
 	`
 
 	variables := map[string]interface{}{
-		"model": model,
-		"_id":   _id,
-		"payload":  payload,
+		"_id":   request.ID,
+		"model": request.Model,
+		"payload":  request.Payload,
+		"single_page_data": request.SinglePageData,
+		"force_update": request.ForceUpdate,
 	}
 
-	if connect != nil {
-		variables["connect"] = connect
+	if request.Connect != nil {
+		variables["connect"] = request.Connect
 	}
-	if disconnect != nil {
-		variables["disconnect"] = disconnect
+	if request.Disconnect != nil {
+		variables["disconnect"] = request.Disconnect
 	}
 
 	response, err := c.executeGraphQL(ctx, query, variables)

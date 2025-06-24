@@ -1,24 +1,29 @@
 # Go Apito SDK
 
-A Go SDK for communicating with Apito GraphQL API endpoints. This SDK implements the `InjectedDBOperationInterface` and provides a simple, idiomatic Go interface for interacting with Apito's backend services.
+[![Go Reference](https://pkg.go.dev/badge/github.com/apito-io/go-apito-sdk.svg)](https://pkg.go.dev/github.com/apito-io/go-apito-sdk)
+[![Go Report Card](https://goreportcard.com/badge/github.com/apito-io/go-apito-sdk)](https://goreportcard.com/report/github.com/apito-io/go-apito-sdk)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Features
+A comprehensive Go SDK for communicating with Apito GraphQL API endpoints. This SDK implements the `InjectedDBOperationInterface` and provides both type-safe and flexible interfaces for interacting with Apito's backend services.
 
-- ✅ Full implementation of `InjectedDBOperationInterface`
-- ✅ GraphQL-based communication with Apito backend
-- ✅ API key authentication via `X-APITO-KEY` header
-- ✅ Context-aware operations with timeout support
-- ✅ Comprehensive error handling
-- ✅ Type-safe operations with Go structs
-- ✅ Suitable for use in HashiCorp Go plugins and any Go environment
+## 🚀 Features
 
-## Installation
+- ✅ **Complete SDK Implementation**: Full implementation of `InjectedDBOperationInterface`
+- ✅ **Type-Safe Operations**: Generic typed methods for better development experience
+- ✅ **GraphQL-Based**: Native GraphQL communication with Apito backend
+- ✅ **Authentication Ready**: API key and tenant-based authentication
+- ✅ **Context-Aware**: Full context support with timeout and cancellation
+- ✅ **Comprehensive Error Handling**: Detailed error responses and GraphQL error support
+- ✅ **Plugin-Ready**: Perfect for HashiCorp Go plugins and microservices
+- ✅ **Production Ready**: Battle-tested in production environments
+
+## 📦 Installation
 
 ```bash
 go get github.com/apito-io/go-apito-sdk
 ```
 
-## Quick Start
+## 🎯 Quick Start
 
 ```go
 package main
@@ -42,50 +47,50 @@ func main() {
 
     ctx := context.Background()
 
-    // Get project details
-    project, err := client.GetProjectDetails(ctx, "project-id")
+    // Create a new todo
+    todoData := map[string]interface{}{
+        "title":       "Learn Apito SDK",
+        "description": "Complete the SDK tutorial",
+        "status":      "todo",
+        "priority":    "high",
+    }
+
+    request := &goapitosdk.CreateAndUpdateRequest{
+        Model:   "todos",
+        Payload: todoData,
+    }
+
+    todo, err := client.CreateNewResource(ctx, request)
     if err != nil {
         log.Fatal(err)
     }
 
-    fmt.Printf("Project: %s (%s)\n", project.Name, project.ID)
-
-    // Search for resources
-    filter := map[string]interface{}{
-        "limit": 10,
-        "page":  1,
-    }
-
-    results, err := client.SearchResources(ctx, "users", filter, false)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    fmt.Printf("Search results: %+v\n", results)
+    fmt.Printf("Created todo: %s\n", todo.ID)
 }
 ```
 
-## Configuration
+## ⚙️ Configuration
 
-The SDK is configured using the `Config` struct:
+### Basic Configuration
 
 ```go
-type Config struct {
-    BaseURL    string        // Base URL of the Apito GraphQL endpoint
-    APIKey     string        // API key for authentication (X-APITO-KEY header)
-    Timeout    time.Duration // HTTP client timeout (default: 30 seconds)
-    HTTPClient *http.Client  // Custom HTTP client (optional)
-}
+client := goapitosdk.NewClient(goapitosdk.Config{
+    BaseURL: "https://api.apito.io/graphql",  // Your Apito GraphQL endpoint
+    APIKey:  "your-api-key-here",             // X-APITO-KEY header value
+    Timeout: 30 * time.Second,                // HTTP client timeout
+})
 ```
 
-### Example with Custom HTTP Client
+### Advanced Configuration
 
 ```go
+// Custom HTTP client with specific settings
 customClient := &http.Client{
     Timeout: 60 * time.Second,
     Transport: &http.Transport{
         MaxIdleConns:        100,
         MaxIdleConnsPerHost: 10,
+        IdleConnTimeout:     90 * time.Second,
     },
 }
 
@@ -96,270 +101,577 @@ client := goapitosdk.NewClient(goapitosdk.Config{
 })
 ```
 
-## API Reference
-
-### Core Operations
-
-#### GetProjectDetails
-
-Retrieves project details for the given project ID.
+### Context with Tenant ID
 
 ```go
-project, err := client.GetProjectDetails(ctx, "project-id")
+ctx := context.Background()
+ctx = context.WithValue(ctx, "tenant_id", "your-tenant-id")
+
+// All operations will now include the tenant ID
+results, err := client.SearchResources(ctx, "users", filter, false)
 ```
 
-#### GetSingleResource
+## 📚 Complete API Reference
 
-Retrieves a single resource by model and ID.
+### 🔐 Authentication
+
+#### Generate Tenant Token
+
+Generate a new tenant token for multi-tenant operations:
 
 ```go
-resource, err := client.GetSingleResource(ctx, "users", "user-id", false)
+tenantToken, err := client.GenerateTenantToken(ctx, "auth-token", "tenant-id")
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println("Generated token:", tenantToken)
 ```
 
-#### SearchResources
+### 📝 Resource Management
 
-Searches for resources using filters.
+#### Create New Resource
+
+**Untyped Creation:**
+
+```go
+request := &goapitosdk.CreateAndUpdateRequest{
+    Model: "users",
+    Payload: map[string]interface{}{
+        "name":   "John Doe",
+        "email":  "john@example.com",
+        "active": true,
+    },
+    Connect: map[string]interface{}{
+        "organization_id": "org-123",
+    },
+}
+
+user, err := client.CreateNewResource(ctx, request)
+```
+
+**Type-Safe Creation:**
+
+```go
+type User struct {
+    ID     string `json:"id"`
+    Name   string `json:"name"`
+    Email  string `json:"email"`
+    Active bool   `json:"active"`
+}
+
+typedUser, err := goapitosdk.CreateNewResourceTyped[User](client, ctx, request)
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Printf("Created user: %s (%s)\n", typedUser.Data.Name, typedUser.Data.Email)
+```
+
+#### Update Resource
+
+```go
+updateRequest := &goapitosdk.CreateAndUpdateRequest{
+    ID:    "user-123",
+    Model: "users",
+    Payload: map[string]interface{}{
+        "name": "Jane Doe Updated",
+    },
+    Connect: map[string]interface{}{
+        "role_id": "role-456",
+    },
+    Disconnect: map[string]interface{}{
+        "old_role_id": "role-123",
+    },
+    ForceUpdate: false,
+}
+
+updatedUser, err := client.UpdateResource(ctx, updateRequest)
+```
+
+#### Delete Resource
+
+```go
+err := client.DeleteResource(ctx, "users", "user-123")
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+### 🔍 Search & Retrieval
+
+#### Search Resources
+
+**Basic Search:**
 
 ```go
 filter := map[string]interface{}{
-    "page":   1,
-    "limit":  10,
-    "where":  map[string]interface{}{"status": "active"},
+    "limit": 10,
+    "page":  1,
+    "where": map[string]interface{}{
+        "status": "active",
+        "role":   "admin",
+    },
     "search": "john@example.com",
 }
 
 results, err := client.SearchResources(ctx, "users", filter, false)
 ```
 
-#### CreateNewResource
-
-Creates a new resource with data and optional connections.
+**Type-Safe Search:**
 
 ```go
-data := map[string]interface{}{
-    "name":  "John Doe",
-    "email": "john@example.com",
+typedResults, err := goapitosdk.SearchResourcesTyped[User](client, ctx, "users", filter, false)
+if err != nil {
+    log.Fatal(err)
 }
 
-connection := map[string]interface{}{
-    "organization_id": "org-123",
+for _, userDoc := range typedResults.Results {
+    fmt.Printf("User: %s (%s)\n", userDoc.Data.Name, userDoc.Data.Email)
 }
-
-result, err := client.CreateNewResource(ctx, "users", data, connection)
 ```
 
-#### UpdateResource
-
-Updates an existing resource.
+**Advanced Filtering:**
 
 ```go
-data := map[string]interface{}{
-    "name": "Jane Doe",
+advancedFilter := map[string]interface{}{
+    "limit":  20,
+    "offset": 10,
+    "where": map[string]interface{}{
+        "created_at": map[string]interface{}{
+            "$gte": "2024-01-01T00:00:00Z",
+        },
+        "status": map[string]interface{}{
+            "$in": []string{"active", "pending"},
+        },
+    },
+    "sort": map[string]interface{}{
+        "created_at": -1, // Descending order
+    },
 }
 
-connect := map[string]interface{}{
-    "role_id": "role-456",
+results, err := client.SearchResources(ctx, "users", advancedFilter, false)
+```
+
+#### Get Single Resource
+
+**Untyped Retrieval:**
+
+```go
+user, err := client.GetSingleResource(ctx, "users", "user-123", false)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+**Type-Safe Retrieval:**
+
+```go
+typedUser, err := goapitosdk.GetSingleResourceTyped[User](client, ctx, "users", "user-123", false)
+if err != nil {
+    log.Fatal(err)
 }
 
-result, err := client.UpdateResource(ctx, "users", "user-id", false, data, connect, nil)
+fmt.Printf("User: %s\n", typedUser.Data.Name)
 ```
 
-#### DeleteResource
-
-Deletes a resource by model and ID.
+#### Get Related Documents
 
 ```go
-err := client.DeleteResource(ctx, "users", "user-id")
+relationConnection := map[string]interface{}{
+    "model": "todos",
+    "filter": map[string]interface{}{
+        "limit": 10,
+        "where": map[string]interface{}{
+            "status": "pending",
+        },
+    },
+}
+
+// Get todos related to a user
+relatedTodos, err := client.GetRelationDocuments(ctx, "user-123", relationConnection)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Type-safe version
+typedTodos, err := goapitosdk.GetRelationDocumentsTyped[Todo](client, ctx, "user-123", relationConnection)
 ```
 
-### Utility Operations
+### 📊 Audit & Debug
 
-#### GenerateTenantToken
-
-Generates a new tenant token.
-
-```go
-token, err := client.GenerateTenantToken(ctx, "current-token", "tenant-id")
-```
-
-#### SendAuditLog
-
-Sends audit log data.
+#### Send Audit Log
 
 ```go
 auditData := goapitosdk.AuditData{
     Resource: "users",
     Action:   "create",
-    Author:   map[string]interface{}{"user_id": "user-123"},
-    Data:     map[string]interface{}{"email": "john@example.com"},
-    Meta:     map[string]interface{}{"timestamp": time.Now()},
+    Author: map[string]interface{}{
+        "user_id": "admin-123",
+        "name":    "Admin User",
+    },
+    Data: map[string]interface{}{
+        "user_id": "user-456",
+        "email":   "newuser@example.com",
+    },
+    Meta: map[string]interface{}{
+        "ip_address": "192.168.1.1",
+        "user_agent": "Apito-SDK/1.0",
+        "timestamp":  time.Now().Format(time.RFC3339),
+    },
 }
 
 err := client.SendAuditLog(ctx, auditData)
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
-#### Debug
-
-Debug utility for troubleshooting.
+#### Debug Operations
 
 ```go
-result, err := client.Debug(ctx, "plugin-stage", "debug", "data", map[string]interface{}{"key": "value"})
+debugData := map[string]interface{}{
+    "operation": "user_creation",
+    "duration":  "150ms",
+    "success":   true,
+}
+
+result, err := client.Debug(ctx, "user_management", debugData)
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Printf("Debug result: %+v\n", result)
 ```
 
-## Usage in HashiCorp Go Plugins
+## 🎯 Complete Todo Example
 
-The SDK is designed to work seamlessly with HashiCorp Go plugins:
+The SDK includes a comprehensive todo application example that demonstrates all features:
+
+```bash
+# Set environment variables
+export APITO_BASE_URL="https://api.apito.io/graphql"
+export APITO_API_KEY="your-api-key"
+export APITO_TENANT_ID="your-tenant-id"  # Optional
+export APITO_AUTH_TOKEN="your-auth-token"  # Optional for token generation
+
+# Run the example
+cd examples/basic
+go run main.go
+```
+
+The example demonstrates:
+
+- 🔐 Authentication & tenant token generation
+- 📝 Creating resources (todos, users, categories)
+- 🔍 Searching with both typed and untyped methods
+- 📄 Getting single resources
+- ✏️ Updating resources
+- 🔗 Getting related documents
+- 📊 Audit logging
+- 🐛 Debug functionality
+- 🗑️ Resource cleanup
+
+## 🏗️ Type System
+
+### Defining Custom Types
 
 ```go
-package main
+// Define your data structures
+type Todo struct {
+    ID          string    `json:"id"`
+    Title       string    `json:"title"`
+    Description string    `json:"description"`
+    Status      string    `json:"status"`
+    Priority    string    `json:"priority"`
+    DueDate     time.Time `json:"due_date"`
+    CreatedAt   time.Time `json:"created_at"`
+    UpdatedAt   time.Time `json:"updated_at"`
+}
 
-import (
-    "context"
-    "fmt"
+type User struct {
+    ID       string `json:"id"`
+    Name     string `json:"name"`
+    Email    string `json:"email"`
+    Role     string `json:"role"`
+    Active   bool   `json:"active"`
+}
+```
 
-    goapitosdk "github.com/apito-io/go-apito-sdk"
-    "github.com/hashicorp/go-plugin"
-)
+### Type-Safe Operations
 
+All operations have type-safe counterparts:
+
+```go
+// Type-safe alternatives
+GetSingleResourceTyped[T](client, ctx, model, id, singlePageData)
+SearchResourcesTyped[T](client, ctx, model, filter, aggregate)
+GetRelationDocumentsTyped[T](client, ctx, id, connection)
+CreateNewResourceTyped[T](client, ctx, request)
+UpdateResourceTyped[T](client, ctx, request)
+```
+
+## 🔌 Plugin Integration
+
+### HashiCorp Go Plugin Usage
+
+```go
+// In your plugin
 type MyPlugin struct {
     client goapitosdk.InjectedDBOperationInterface
 }
 
-func (p *MyPlugin) Initialize(apiKey, baseURL string) {
-    p.client = goapitosdk.NewClient(goapitosdk.Config{
-        BaseURL: baseURL,
-        APIKey:  apiKey,
-    })
+func (p *MyPlugin) Initialize(client goapitosdk.InjectedDBOperationInterface) {
+    p.client = client
 }
 
-func (p *MyPlugin) DoSomething(ctx context.Context) error {
-    // Use the client
-    project, err := p.client.GetProjectDetails(ctx, "")
+func (p *MyPlugin) ProcessData(ctx context.Context) error {
+    // Use the client for database operations
+    results, err := p.client.SearchResources(ctx, "data", filter, false)
     if err != nil {
         return err
     }
 
-    fmt.Printf("Working with project: %s\n", project.Name)
+    // Process results...
     return nil
-}
-
-func main() {
-    plugin.Serve(&plugin.ServeConfig{
-        HandshakeConfig: handshakeConfig,
-        Plugins: map[string]plugin.Plugin{
-            "myPlugin": &MyPluginRPC{Impl: &MyPlugin{}},
-        },
-    })
 }
 ```
 
-## Error Handling
-
-The SDK provides comprehensive error handling:
+### Microservice Integration
 
 ```go
-result, err := client.GetSingleResource(ctx, "users", "invalid-id", false)
+// In your microservice
+type UserService struct {
+    apitoClient *goapitosdk.Client
+}
+
+func NewUserService(config goapitosdk.Config) *UserService {
+    return &UserService{
+        apitoClient: goapitosdk.NewClient(config),
+    }
+}
+
+func (s *UserService) CreateUser(ctx context.Context, userData User) (*User, error) {
+    request := &goapitosdk.CreateAndUpdateRequest{
+        Model:   "users",
+        Payload: structToMap(userData),
+    }
+
+    result, err := goapitosdk.CreateNewResourceTyped[User](s.apitoClient, ctx, request)
+    if err != nil {
+        return nil, err
+    }
+
+    return &result.Data, nil
+}
+```
+
+## 🔧 Error Handling
+
+### GraphQL Errors
+
+```go
+results, err := client.SearchResources(ctx, "users", filter, false)
 if err != nil {
-    // Handle different types of errors
-    switch {
-    case strings.Contains(err.Error(), "HTTP error"):
-        fmt.Println("Network or server error:", err)
-    case strings.Contains(err.Error(), "GraphQL errors"):
-        fmt.Println("GraphQL query error:", err)
-    case strings.Contains(err.Error(), "unexpected response format"):
-        fmt.Println("Response parsing error:", err)
-    default:
-        fmt.Println("Unknown error:", err)
+    // Check if it's a GraphQL error
+    if graphqlErr, ok := err.(*goapitosdk.GraphQLError); ok {
+        fmt.Printf("GraphQL Error: %s\n", graphqlErr.Message)
+        fmt.Printf("Path: %v\n", graphqlErr.Path)
+        fmt.Printf("Extensions: %v\n", graphqlErr.Extensions)
+    } else {
+        // Handle other errors (HTTP, network, etc.)
+        fmt.Printf("Error: %v\n", err)
     }
 }
 ```
 
-## Authentication
-
-The SDK uses API key authentication via the `X-APITO-KEY` header. Make sure to:
-
-1. Obtain a valid API key from your Apito dashboard
-2. Keep your API key secure and never commit it to version control
-3. Use environment variables or secure configuration management
+### HTTP Errors
 
 ```go
-import "os"
-
+// Handle HTTP-level errors
 client := goapitosdk.NewClient(goapitosdk.Config{
-    BaseURL: os.Getenv("APITO_BASE_URL"),
-    APIKey:  os.Getenv("APITO_API_KEY"),
+    BaseURL: "https://api.apito.io/graphql",
+    APIKey:  "invalid-key",
+    Timeout: 5 * time.Second,
 })
-```
 
-## Best Practices
-
-### Context Usage
-
-Always pass a context with appropriate timeouts:
-
-```go
-ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-defer cancel()
-
-result, err := client.GetSingleResource(ctx, "users", "user-id", false)
-```
-
-### Error Handling
-
-Check for errors and handle them appropriately:
-
-```go
+_, err := client.SearchResources(ctx, "users", nil, false)
 if err != nil {
-    // Log the error
-    log.Printf("Failed to fetch resource: %v", err)
-
-    // Return a user-friendly error
-    return fmt.Errorf("unable to fetch user data: %w", err)
+    if strings.Contains(err.Error(), "HTTP error 401") {
+        fmt.Println("Authentication failed - check your API key")
+    } else if strings.Contains(err.Error(), "HTTP error 403") {
+        fmt.Println("Authorization failed - check your permissions")
+    }
 }
 ```
 
-### Resource Management
+## 🧪 Testing
 
-The SDK manages HTTP connections efficiently, but you can customize the HTTP client if needed:
+### Mock Client
 
 ```go
-client := goapitosdk.NewClient(goapitosdk.Config{
-    BaseURL: "https://api.apito.io/graphql",
-    APIKey:  "your-api-key",
-    HTTPClient: &http.Client{
-        Timeout: 60 * time.Second,
-        Transport: &http.Transport{
-            MaxIdleConns:       100,
-            MaxIdleConnsPerHost: 10,
-            IdleConnTimeout:    90 * time.Second,
+// For testing, you can implement the interface
+type MockClient struct{}
+
+func (m *MockClient) SearchResources(ctx context.Context, model string, filter map[string]interface{}, aggregate bool) (*goapitosdk.SearchResult, error) {
+    // Return mock data
+    return &goapitosdk.SearchResult{
+        Results: []*shared.DefaultDocumentStructure{
+            {ID: "test-1", Data: map[string]interface{}{"name": "Test User"}},
         },
+        Count: 1,
+    }, nil
+}
+
+// Use in tests
+func TestUserService(t *testing.T) {
+    service := &UserService{apitoClient: &MockClient{}}
+    // Test your service...
+}
+```
+
+## 📈 Performance Tips
+
+### Connection Pooling
+
+```go
+// Configure HTTP client for better performance
+client := &http.Client{
+    Transport: &http.Transport{
+        MaxIdleConns:          100,
+        MaxIdleConnsPerHost:   10,
+        IdleConnTimeout:       90 * time.Second,
+        TLSHandshakeTimeout:   10 * time.Second,
+        ExpectContinueTimeout: 1 * time.Second,
     },
+    Timeout: 30 * time.Second,
+}
+
+apitoClient := goapitosdk.NewClient(goapitosdk.Config{
+    BaseURL:    "https://api.apito.io/graphql",
+    APIKey:     "your-api-key",
+    HTTPClient: client,
 })
 ```
 
-## Contributing
+### Batch Operations
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+```go
+// Instead of multiple individual requests, batch them
+var wg sync.WaitGroup
+results := make(chan *goapitosdk.SearchResult, 10)
 
-## License
+for i := 0; i < 10; i++ {
+    wg.Add(1)
+    go func(page int) {
+        defer wg.Done()
+        filter := map[string]interface{}{"page": page, "limit": 100}
+        result, err := client.SearchResources(ctx, "users", filter, false)
+        if err == nil {
+            results <- result
+        }
+    }(i)
+}
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+go func() {
+    wg.Wait()
+    close(results)
+}()
 
-## Support
+// Process results as they come in
+for result := range results {
+    // Process each batch...
+}
+```
 
-For support, please open an issue on GitHub or contact the Apito team.
+## 🚀 Production Deployment
 
-## Changelog
+### Environment Variables
 
-### v1.0.0
+```bash
+# Required
+APITO_BASE_URL=https://api.apito.io/graphql
+APITO_API_KEY=your-production-api-key
 
-- Initial release
-- Full implementation of `InjectedDBOperationInterface`
-- GraphQL-based API communication
-- API key authentication support
-- Context-aware operations
-- Comprehensive error handling
+# Optional
+APITO_TENANT_ID=your-tenant-id
+APITO_AUTH_TOKEN=your-auth-token
+APITO_TIMEOUT=30s
+```
+
+### Docker Configuration
+
+```dockerfile
+FROM golang:1.22-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN go build -o app main.go
+
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/app .
+CMD ["./app"]
+```
+
+### Kubernetes Deployment
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apito-sdk-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: apito-sdk-app
+  template:
+    metadata:
+      labels:
+        app: apito-sdk-app
+    spec:
+      containers:
+        - name: app
+          image: your-app:latest
+          env:
+            - name: APITO_BASE_URL
+              value: "https://api.apito.io/graphql"
+            - name: APITO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: apito-secrets
+                  key: api-key
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+```bash
+git clone https://github.com/apito-io/go-apito-sdk.git
+cd go-apito-sdk
+go mod download
+go test ./...
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- [Apito Documentation](https://docs.apito.io)
+- [API Reference](https://pkg.go.dev/github.com/apito-io/go-apito-sdk)
+- [GitHub Repository](https://github.com/apito-io/go-apito-sdk)
+- [Issues](https://github.com/apito-io/go-apito-sdk/issues)
+
+## 🆘 Support
+
+- 📧 Email: support@apito.io
+- 💬 Discord: [Join our community](https://discord.gg/apito)
+- 📖 Documentation: [docs.apito.io](https://docs.apito.io)
+- 🐛 Bug Reports: [GitHub Issues](https://github.com/apito-io/go-apito-sdk/issues)
