@@ -387,6 +387,9 @@ func (c *Client) SearchResources(ctx context.Context, model string, filter map[s
 
 	// Add filter parameters if provided
 	if filter != nil {
+		if where, ok := filter["_key"]; ok {
+			variables["_key"] = where
+		}
 		if page, ok := filter["page"]; ok {
 			variables["page"] = page
 		}
