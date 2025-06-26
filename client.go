@@ -361,8 +361,8 @@ func (c *Client) GetSingleResource(ctx context.Context, model, _id string, singl
 // SearchResources searches for resources in the specified model using the provided filter
 func (c *Client) SearchResources(ctx context.Context, model string, filter map[string]interface{}, aggregate bool) (*SearchResult, error) {
 	query := `
-		query GetModelData($model: String!, $page: Int, $limit: Int, $where: JSON, $search: String) {
-			getModelData(model: $model, page: $page, limit: $limit, where: $where, search: $search) {
+		query GetModelData($model: String!, $page: Int, $limit: Int, $key: JSON, $where: JSON, $search: String) {
+			getModelData(model: $model, page: $page, limit: $limit, key: $key, where: $where, search: $search) {
 				results {
 					id
 					relation_doc_id
