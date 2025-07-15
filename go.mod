@@ -1,4 +1,4 @@
-module github.com/apito-io/go-apito-sdk
+module github.com/apito-io/go-internal-sdk
 
 go 1.22.5
 

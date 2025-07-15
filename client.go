@@ -75,8 +75,9 @@ func (c *Client) executeGraphQL(ctx context.Context, query string, variables map
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Apito-Key", c.apiKey)
-	req.Header.Set("X-Apito-Tenant-ID", tenantID)
-
+	if tenantID != "" {
+		req.Header.Set("X-Apito-Tenant-ID", tenantID)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
