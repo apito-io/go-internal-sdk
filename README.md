@@ -1,7 +1,7 @@
 # Go Apito SDK
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/apito-io/go-apito-sdk.svg)](https://pkg.go.dev/github.com/apito-io/go-apito-sdk)
-[![Go Report Card](https://goreportcard.com/badge/github.com/apito-io/go-apito-sdk)](https://goreportcard.com/report/github.com/apito-io/go-apito-sdk)
+[![Go Reference](https://pkg.go.dev/badge/github.com/apito-io/go-internal-sdk.svg)](https://pkg.go.dev/github.com/apito-io/go-internal-sdk)
+[![Go Report Card](https://goreportcard.com/badge/github.com/apito-io/go-internal-sdk)](https://goreportcard.com/report/github.com/apito-io/go-internal-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A comprehensive Go SDK for communicating with Apito GraphQL API endpoints. This SDK implements the `InjectedDBOperationInterface` and provides both type-safe and flexible interfaces for interacting with Apito's backend services.
@@ -20,7 +20,7 @@ A comprehensive Go SDK for communicating with Apito GraphQL API endpoints. This 
 ## 📦 Installation
 
 ```bash
-go get github.com/apito-io/go-apito-sdk
+go get github.com/apito-io/go-internal-sdk
 ```
 
 ## 🎯 Quick Start
@@ -34,7 +34,7 @@ import (
     "log"
     "time"
 
-    goapitosdk "github.com/apito-io/go-apito-sdk"
+    goapitosdk "github.com/apito-io/go-internal-sdk"
 )
 
 func main() {
@@ -652,7 +652,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Development Setup
 
 ```bash
-git clone https://github.com/apito-io/go-apito-sdk.git
+git clone https://github.com/apito-io/go-internal-sdk.git
 cd go-apito-sdk
 go mod download
 go test ./...
@@ -665,13 +665,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔗 Links
 
 - [Apito Documentation](https://docs.apito.io)
-- [API Reference](https://pkg.go.dev/github.com/apito-io/go-apito-sdk)
-- [GitHub Repository](https://github.com/apito-io/go-apito-sdk)
-- [Issues](https://github.com/apito-io/go-apito-sdk/issues)
+- [API Reference](https://pkg.go.dev/github.com/apito-io/go-internal-sdk)
+- [GitHub Repository](https://github.com/apito-io/go-internal-sdk)
+- [Issues](https://github.com/apito-io/go-internal-sdk/issues)
 
 ## 🆘 Support
 
 - 📧 Email: support@apito.io
 - 💬 Discord: [Join our community](https://discord.gg/apito)
 - 📖 Documentation: [docs.apito.io](https://docs.apito.io)
-- 🐛 Bug Reports: [GitHub Issues](https://github.com/apito-io/go-apito-sdk/issues)
+- 🐛 Bug Reports: [GitHub Issues](https://github.com/apito-io/go-internal-sdk/issues)

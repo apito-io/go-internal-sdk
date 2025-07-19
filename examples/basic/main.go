@@ -7,7 +7,8 @@ import (
 	"os"
 	"time"
 
-	goapitosdk "github.com/apito-io/go-apito-sdk"
+	goapitosdk "github.com/apito-io/go-internal-sdk"
+	"github.com/apito-io/types"
 )
 
 // Todo represents a todo item structure
@@ -83,7 +84,7 @@ func main() {
 		"color":       "#3498db",
 	}
 
-	categoryRequest := &goapitosdk.CreateAndUpdateRequest{
+	categoryRequest := &types.CreateAndUpdateRequest{
 		Model:          "categories",
 		Payload:        categoryData,
 		SinglePageData: false,
@@ -104,7 +105,7 @@ func main() {
 		"active": true,
 	}
 
-	userRequest := &goapitosdk.CreateAndUpdateRequest{
+	userRequest := &types.CreateAndUpdateRequest{
 		Model:          "users",
 		Payload:        userData,
 		SinglePageData: false,
@@ -144,7 +145,7 @@ func main() {
 
 	var createdTodos []string
 	for i, todoData := range todos {
-		todoRequest := &goapitosdk.CreateAndUpdateRequest{
+		todoRequest := &types.CreateAndUpdateRequest{
 			Model:          "todos",
 			Payload:        todoData,
 			SinglePageData: false,
@@ -266,7 +267,7 @@ func main() {
 			"updated_at": time.Now().Format(time.RFC3339),
 		}
 
-		updateRequest := &goapitosdk.CreateAndUpdateRequest{
+		updateRequest := &types.CreateAndUpdateRequest{
 			ID:             todoID,
 			Model:          "todos",
 			Payload:        updateData,
@@ -325,36 +326,6 @@ func main() {
 				fmt.Printf("   - %s: %s\n", todoDoc.ID, todoDoc.Data.Title)
 			}
 		}
-	}
-
-	// =============================================================================
-	// 7. AUDIT LOGGING
-	// =============================================================================
-	fmt.Println("\n📊 7. Audit Logging")
-
-	auditData := goapitosdk.AuditData{
-		Resource: "todos",
-		Action:   "bulk_create",
-		Author: map[string]interface{}{
-			"user_id": "system",
-			"name":    "SDK Example",
-		},
-		Data: map[string]interface{}{
-			"todos_created": len(createdTodos),
-			"timestamp":     time.Now().Format(time.RFC3339),
-		},
-		Meta: map[string]interface{}{
-			"source":     "go-apito-sdk-example",
-			"version":    "1.0.0",
-			"ip_address": "127.0.0.1",
-		},
-	}
-
-	err = client.SendAuditLog(ctx, auditData)
-	if err != nil {
-		log.Printf("❌ Error sending audit log: %v", err)
-	} else {
-		fmt.Printf("✅ Audit log sent successfully\n")
 	}
 
 	// =============================================================================

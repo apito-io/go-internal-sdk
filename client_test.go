@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/apito-io/types"
 )
 
 const (
@@ -195,7 +197,7 @@ func TestCreateNewResource(t *testing.T) {
 		"executor_id":  "354c47b6-8693-4720-9a4d-7404a64386f9",
 	}
 
-	result, err := client.CreateNewResource(ctx, &CreateAndUpdateRequest{
+	result, err := client.CreateNewResource(ctx, &types.CreateAndUpdateRequest{
 		Model: "task",
 		Payload: data,
 		Connect: connct,
@@ -233,7 +235,7 @@ func TestUpdateResource(t *testing.T) {
 		"executor_id": "354c47b6-8693-4720-9a4d-7404a64386f9",
 	}
 
-	result, err := client.UpdateResource(ctx, &CreateAndUpdateRequest{
+	result, err := client.UpdateResource(ctx, &types.CreateAndUpdateRequest{
 		Model: "task",
 		ID: "a0d50ad7-3001-4be0-92bd-d0daac0af3a9",
 		Payload: data,
@@ -284,34 +286,6 @@ func TestGenerateTenantToken(t *testing.T) {
 	t.Logf("✅ GenerateTenantToken succeeded: %s", token)
 }
 
-func TestSendAuditLog(t *testing.T) {
-	client := getTestClient()
-	ctx := context.Background()
-
-	auditData := AuditData{
-		Resource: "users",
-		Action:   "test",
-		Author: map[string]interface{}{
-			"user_id": "test-user",
-			"name":    "Test User",
-		},
-		Data: map[string]interface{}{
-			"test": "data",
-		},
-		Meta: map[string]interface{}{
-			"test_run": true,
-		},
-	}
-
-	err := client.SendAuditLog(ctx, auditData)
-	if err != nil {
-		t.Logf("SendAuditLog failed (may be expected): %v", err)
-		return
-	}
-
-	t.Logf("✅ SendAuditLog succeeded")
-}
-
 func TestDebug(t *testing.T) {
 	client := getTestClient()
 	ctx := context.Background()
@@ -352,60 +326,6 @@ func TestExecuteGraphQL(t *testing.T) {
 	}
 
 	t.Logf("✅ executeGraphQL succeeded: %+v", response.Data)
-}
-
-// Integration test that runs multiple operations in sequence
-func TestClientIntegration(t *testing.T) {
-	client := getTestClient()
-	ctx := context.Background()
-
-	t.Log("=== Running Integration Test ===")
-
-	/* // Test 1: Get project details
-	t.Log("1. Testing GetProjectDetails...")
-	project, err := client.GetProjectDetails(ctx, "")
-	if err != nil {
-		t.Logf("   GetProjectDetails failed: %v", err)
-	} else {
-		t.Logf("   ✅ Project: %s", project.Name)
-	} */
-
-	// Test 2: Search resources
-	t.Log("2. Testing SearchResources...")
-	filter := map[string]interface{}{
-		"limit": 3,
-		"page":  1,
-	}
-	results, err := client.SearchResources(ctx, "users", filter, false)
-	if err != nil {
-		t.Logf("   SearchResources failed: %v", err)
-	} else {
-		t.Logf("   ✅ Search completed: %+v", results)
-	}
-
-	// Test 3: Send audit log
-	t.Log("3. Testing SendAuditLog...")
-	auditData := AuditData{
-		Resource: "test",
-		Action:   "integration_test",
-		Author: map[string]interface{}{
-			"test": "integration",
-		},
-		Data: map[string]interface{}{
-			"timestamp": time.Now().Unix(),
-		},
-		Meta: map[string]interface{}{
-			"test_type": "integration",
-		},
-	}
-	err = client.SendAuditLog(ctx, auditData)
-	if err != nil {
-		t.Logf("   SendAuditLog failed: %v", err)
-	} else {
-		t.Log("   ✅ Audit log sent successfully")
-	}
-
-	t.Log("=== Integration Test Completed ===")
 }
 
 func TestTypedOperations(t *testing.T) {

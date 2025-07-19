@@ -162,7 +162,7 @@ If you don't have a real Apito backend, the example will handle errors gracefull
 ## 🔗 Related Documentation
 
 - [Main SDK Documentation](../../README.md)
-- [Go Apito SDK API Reference](https://pkg.go.dev/github.com/apito-io/go-apito-sdk)
+- [Go Apito SDK API Reference](https://pkg.go.dev/github.com/apito-io/go-internal-sdk)
 - [Apito Platform Documentation](https://docs.apito.io)
 
 ## 💡 Next Steps

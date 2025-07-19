@@ -9,7 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/apito.io/buffers/shared"
+	"github.com/apito-io/types"
+	"github.com/apito-io/types/interfaces"
 )
 
 // Client represents the Apito SDK client
@@ -48,7 +49,7 @@ func NewClient(config Config) *Client {
 }
 
 // executeGraphQL executes a GraphQL query or mutation
-func (c *Client) executeGraphQL(ctx context.Context, query string, variables map[string]interface{}) (*GraphQLResponse, error) {
+func (c *Client) executeGraphQL(ctx context.Context, query string, variables map[string]interface{}) (*types.GraphQLResponse, error) {
 	
 	var tenantID string
 	if ctx.Value("tenant_id") != nil {
@@ -94,7 +95,7 @@ func (c *Client) executeGraphQL(ctx context.Context, query string, variables map
 		return nil, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body))
 	}
 
-	var response GraphQLResponse
+	var response types.GraphQLResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal GraphQL response: %w", err)
 	}
@@ -149,7 +150,7 @@ func (c *Client) GenerateTenantToken(ctx context.Context, token string, tenantID
 // =============================================================================
 
 // GetSingleResourceTyped retrieves a single resource by model and ID with typed data
-func GetSingleResourceTyped[T any](c *Client, ctx context.Context, model, _id string, singlePageData bool) (*TypedDocumentStructure[T], error) {
+func GetSingleResourceTyped[T any](c *Client, ctx context.Context, model, _id string, singlePageData bool) (*types.TypedDocumentStructure[T], error) {
 	rawDocument, err := c.GetSingleResource(ctx, model, _id, singlePageData)
 	if err != nil {
 		return nil, err
@@ -158,7 +159,7 @@ func GetSingleResourceTyped[T any](c *Client, ctx context.Context, model, _id st
 }
 
 // SearchResourcesTyped searches for resources with typed results
-func SearchResourcesTyped[T any](c *Client, ctx context.Context, model string, filter map[string]interface{}, aggregate bool) (*TypedSearchResult[T], error) {
+func SearchResourcesTyped[T any](c *Client, ctx context.Context, model string, filter map[string]interface{}, aggregate bool) (*types.TypedSearchResult[T], error) {
 	rawResults, err := c.SearchResources(ctx, model, filter, aggregate)
 	if err != nil {
 		return nil, err
@@ -167,7 +168,7 @@ func SearchResourcesTyped[T any](c *Client, ctx context.Context, model string, f
 }
 
 // GetRelationDocumentsTyped retrieves related documents with typed results
-func GetRelationDocumentsTyped[T any](c *Client, ctx context.Context, _id string, connection map[string]interface{}) (*TypedSearchResult[T], error) {
+func GetRelationDocumentsTyped[T any](c *Client, ctx context.Context, _id string, connection map[string]interface{}) (*types.TypedSearchResult[T], error) {
 	rawResults, err := c.GetRelationDocuments(ctx, _id, connection)
 	if err != nil {
 		return nil, err
@@ -176,7 +177,7 @@ func GetRelationDocumentsTyped[T any](c *Client, ctx context.Context, _id string
 }
 
 // CreateNewResourceTyped creates a new resource with typed result
-func CreateNewResourceTyped[T any](c *Client, ctx context.Context, request *CreateAndUpdateRequest) (*TypedDocumentStructure[T], error) {
+func CreateNewResourceTyped[T any](c *Client, ctx context.Context, request *types.CreateAndUpdateRequest) (*types.TypedDocumentStructure[T], error) {
 	rawDocument, err := c.CreateNewResource(ctx, request)
 	if err != nil {
 		return nil, err
@@ -185,7 +186,7 @@ func CreateNewResourceTyped[T any](c *Client, ctx context.Context, request *Crea
 }
 
 // UpdateResourceTyped updates a resource with typed result
-func UpdateResourceTyped[T any](c *Client, ctx context.Context, request *CreateAndUpdateRequest) (*TypedDocumentStructure[T], error) {
+func UpdateResourceTyped[T any](c *Client, ctx context.Context, request *types.CreateAndUpdateRequest) (*types.TypedDocumentStructure[T], error) {
 	rawDocument, err := c.UpdateResource(ctx, request)
 	if err != nil {
 		return nil, err
@@ -198,7 +199,7 @@ func UpdateResourceTyped[T any](c *Client, ctx context.Context, request *CreateA
 // =============================================================================
 
 // convertToTypedDocument converts a raw DefaultDocumentStructure to a typed document
-func convertToTypedDocument[T any](rawDoc *shared.DefaultDocumentStructure) (*TypedDocumentStructure[T], error) {
+func convertToTypedDocument[T any](rawDoc *types.DefaultDocumentStructure) (*types.TypedDocumentStructure[T], error) {
 	dataJSON, err := json.Marshal(rawDoc.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal raw data: %w", err)
@@ -209,7 +210,7 @@ func convertToTypedDocument[T any](rawDoc *shared.DefaultDocumentStructure) (*Ty
 		return nil, fmt.Errorf("failed to unmarshal to typed data: %w", err)
 	}
 
-	return &TypedDocumentStructure[T]{
+	return &types.TypedDocumentStructure[T]{
 		Key:           rawDoc.Key,
 		Data:          typedData,
 		Meta:          rawDoc.Meta,
@@ -221,10 +222,10 @@ func convertToTypedDocument[T any](rawDoc *shared.DefaultDocumentStructure) (*Ty
 }
 
 // convertToTypedSearchResult converts a raw SearchResult to a typed search result
-func convertToTypedSearchResult[T any](rawResults *SearchResult) (*TypedSearchResult[T], error) {
-	typedResults := &TypedSearchResult[T]{
+func convertToTypedSearchResult[T any](rawResults *types.SearchResult) (*types.TypedSearchResult[T], error) {
+	typedResults := &types.TypedSearchResult[T]{
 		Count:   rawResults.Count,
-		Results: make([]*TypedDocumentStructure[T], len(rawResults.Results)),
+		Results: make([]*types.TypedDocumentStructure[T], len(rawResults.Results)),
 	}
 
 	for i, rawDoc := range rawResults.Results {
@@ -304,7 +305,7 @@ func (c *Client) GetProjectDetails(ctx context.Context, projectID string) (*prot
 } */
 
 // GetSingleResource retrieves a single resource by model and ID, with optional single page data
-func (c *Client) GetSingleResource(ctx context.Context, model, _id string, singlePageData bool) (*shared.DefaultDocumentStructure, error) {
+func (c *Client) GetSingleResource(ctx context.Context, model, _id string, singlePageData bool) (*types.DefaultDocumentStructure, error) {
 	query := `
 		query GetSingleData($model: String, $_id: String!, $single_page_data: Boolean) {
 			getSingleData(model: $model, _id: $_id, single_page_data: $single_page_data) {
@@ -351,7 +352,7 @@ func (c *Client) GetSingleResource(ctx context.Context, model, _id string, singl
 		return nil, fmt.Errorf("failed to marshal getSingleData: %w", err)
 	}
 
-	var document shared.DefaultDocumentStructure
+	var document types.DefaultDocumentStructure
 	if err := json.Unmarshal(singleDataJSON, &document); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal getSingleData: %w", err)
 	}
@@ -360,7 +361,7 @@ func (c *Client) GetSingleResource(ctx context.Context, model, _id string, singl
 }
 
 // SearchResources searches for resources in the specified model using the provided filter
-func (c *Client) SearchResources(ctx context.Context, model string, filter map[string]interface{}, aggregate bool) (*SearchResult, error) {
+func (c *Client) SearchResources(ctx context.Context, model string, filter map[string]interface{}, aggregate bool) (*types.SearchResult, error) {
 	query := `
 		query GetModelData($model: String!, $page: Int, $limit: Int, $_key: JSON, $where: JSON, $search: String) {
 			getModelData(model: $model, page: $page, limit: $limit, _key: $_key, where: $where, search: $search) {
@@ -426,7 +427,7 @@ func (c *Client) SearchResources(ctx context.Context, model string, filter map[s
 		return nil, fmt.Errorf("failed to marshal getModelData: %w", err)
 	}
 
-	var searchResult SearchResult
+	var searchResult types.SearchResult
 	if err := json.Unmarshal(modelDataJSON, &searchResult); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal getModelData: %w", err)
 	}
@@ -435,7 +436,7 @@ func (c *Client) SearchResources(ctx context.Context, model string, filter map[s
 }
 
 // GetRelationDocuments retrieves related documents for the given ID and connection parameters
-func (c *Client) GetRelationDocuments(ctx context.Context, _id string, connection map[string]interface{}) (*SearchResult, error) {
+func (c *Client) GetRelationDocuments(ctx context.Context, _id string, connection map[string]interface{}) (*types.SearchResult, error) {
 	query := `
 		query GetModelData($model: String!, $page: Int, $limit: Int, $where: JSON, $search: String, $connection : ListAllDataDetailedOfAModelConnectionPayload) {
 			getModelData(model: $model, page: $page, limit: $limit, where: $where, search: $search, connection: $connection) {
@@ -505,7 +506,7 @@ func (c *Client) GetRelationDocuments(ctx context.Context, _id string, connectio
 		return nil, fmt.Errorf("failed to marshal getModelData: %w", err)
 	}
 
-	var searchResult SearchResult
+	var searchResult types.SearchResult
 	if err := json.Unmarshal(modelDataJSON, &searchResult); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal getModelData: %w", err)
 	}
@@ -514,7 +515,7 @@ func (c *Client) GetRelationDocuments(ctx context.Context, _id string, connectio
 }
 
 // CreateNewResource creates a new resource in the specified model with the given data and connections
-func (c *Client) CreateNewResource(ctx context.Context, request *CreateAndUpdateRequest) (*shared.DefaultDocumentStructure, error) {
+func (c *Client) CreateNewResource(ctx context.Context, request *types.CreateAndUpdateRequest) (*types.DefaultDocumentStructure, error) {
 	
 	if request.Model == "" {
 		return nil, fmt.Errorf("model is required")
@@ -577,7 +578,7 @@ func (c *Client) CreateNewResource(ctx context.Context, request *CreateAndUpdate
 		return nil, fmt.Errorf("failed to marshal getSingleData: %w", err)
 	}
 
-	var document shared.DefaultDocumentStructure
+	var document types.DefaultDocumentStructure
 	if err := json.Unmarshal(singleDataJSON, &document); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal getSingleData: %w", err)
 	}
@@ -586,7 +587,7 @@ func (c *Client) CreateNewResource(ctx context.Context, request *CreateAndUpdate
 }
 
 // UpdateResource updates an existing resource by model and ID, with optional single page data, data updates, and connection changes
-func (c *Client) UpdateResource(ctx context.Context, request *CreateAndUpdateRequest) (*shared.DefaultDocumentStructure, error) {
+func (c *Client) UpdateResource(ctx context.Context, request *types.CreateAndUpdateRequest) (*types.DefaultDocumentStructure, error) {
 	// fetch tenant_id from data if available
 
 	if request.ID == "" {
@@ -662,7 +663,7 @@ func (c *Client) UpdateResource(ctx context.Context, request *CreateAndUpdateReq
 		return nil, fmt.Errorf("failed to marshal getSingleData: %w", err)
 	}
 
-	var document shared.DefaultDocumentStructure
+	var document types.DefaultDocumentStructure
 	if err := json.Unmarshal(singleDataJSON, &document); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal getSingleData: %w", err)
 	}
@@ -695,29 +696,6 @@ func (c *Client) DeleteResource(ctx context.Context, model, _id string) error {
 	return nil
 }
 
-// SendAuditLog sends an audit log entry to the audit log service
-func (c *Client) SendAuditLog(ctx context.Context, auditData AuditData) error {
-	// Note: This is a placeholder implementation as the exact mutation wasn't found in the schema
-	// You would need to implement the actual sendAuditLog mutation based on your GraphQL schema
-	query := `
-		mutation SendAuditLog($auditData: JSON!) {
-			sendAuditLog(auditData: $auditData) {
-				message
-			}
-		}
-	`
-
-	variables := map[string]interface{}{
-		"auditData": auditData,
-	}
-
-	_, err := c.executeGraphQL(ctx, query, variables)
-	if err != nil {
-		return fmt.Errorf("failed to send audit log: %w", err)
-	}
-
-	return nil
-}
 
 // Debug is used to debug the plugin, you can pass data here to debug the plugin
 func (c *Client) Debug(ctx context.Context, stage string, data ...interface{}) (interface{}, error) {
@@ -751,4 +729,4 @@ func (c *Client) Debug(ctx context.Context, stage string, data ...interface{}) (
 }
 
 // Verify that Client implements InjectedDBOperationInterface
-var _ InjectedDBOperationInterface = (*Client)(nil)
+var _ interfaces.InternalSDKOperation = (*Client)(nil)
