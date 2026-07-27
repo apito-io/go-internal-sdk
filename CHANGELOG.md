@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.7] - 2026-07-27
+
+### Fixed
+
+- **`CanonicalizeModelName`** — already-canonical snake_case ids singularize last segment only (parity with open-core `apito_naming.go` / long singles like `indication`).
+
 ## [2.6.6] - 2026-07-21
 
 ### Added

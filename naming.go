@@ -188,10 +188,25 @@ func ApitoConnectionFilterConditionType(resource string) string {
 }
 
 // CanonicalizeModelName normalizes admin input to snake_case singular.
+// Parity with open-core utility/apito_naming.go: already-canonical ids
+// (e.g. indication, practitioner) are accepted without run-on rejection.
 func CanonicalizeModelName(raw string) (string, error) {
 	t := strings.TrimSpace(raw)
 	if t == "" {
 		return "", errInvalidModelName
+	}
+	// Already-canonical snake_case: singularize last segment only.
+	if canonicalIDRe.MatchString(t) {
+		parts := strings.Split(t, "_")
+		last := parts[len(parts)-1]
+		if _, ok := singularKeepAsIs[last]; !ok && strings.HasSuffix(last, "s") && !strings.HasSuffix(last, "ss") {
+			parts[len(parts)-1] = last[:len(last)-1]
+		}
+		out := strings.Join(parts, "_")
+		if !canonicalIDRe.MatchString(out) {
+			return "", errInvalidModelName
+		}
+		return out, nil
 	}
 	// simplified: split on _ and camel, singularize last segment
 	normalized := strings.ReplaceAll(t, "-", "_")
