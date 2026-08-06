@@ -1,12 +1,7 @@
 # go-admin-sdk — Current
 
-## Working on
-- **2026-07-21 access-token project scope (uncommitted):** `Config.ProjectID`,
-  canonical scoped request helper, explicit project-method overrides, focused tests.
-
-## Next
-- Tag/publish 2.6.5 if not yet released; consumer bumps as needed
-- Optional sync-sdk blast-radius confirmation for GetTenant call sites
+- **v2.6.8 (local):** `OAuthState` + LoginUser facebook/github/x/linkedin.
+- Prior access-token project scope / GetTenant work on branch.
 
 ## Last Updated
-2026-07-21
+2026-08-06

@@ -1,23 +1,18 @@
 # go-admin-sdk — Handoff
 
 ## Branch
-- Check submodule `git branch` / tags before push (getTenant work may be local)
+- Check submodule `git branch` / tags before push
 
 ## Done
-- **2026-07-21:** `Config.ProjectID` + canonical project header on configured
-  and explicit project scopes; tenant context retained; focused tests pass.
-- **v2.6.5 (2026-07-14):** `GetTenant(ctx, projectID, tenantID, status)` wraps `SearchTenants` + exact id match
-- CONTRACT.md / README.md / CHANGELOG.md + `tenant_catalog_test.go`
-- Earlier: `SearchTenants` + catalog row fields (2026-07-13)
-
-## Broken / watch
-- GetTenant is exact-id filter on SearchTenants — empty/nil when no match (callers must handle)
+- **2026-08-06:** **v2.6.8** OAuthState + multi-provider LoginUser (local, ask before tag).
+- **2026-07-21:** `Config.ProjectID` + scoped headers.
+- **v2.6.5 / v2.6.7:** GetTenant + CanonicalizeModelName.
 
 ## Next
-- Publish/tag 2.6.5; confirm Kisti/other Go consumers if any adopt GetTenant
+- Tag **v2.6.8** with auth OAuth release cut.
 
 ## Do not touch
-- Engine GraphQL naming without CONTRACT update across JS/Flutter/Go
+- Force-push without ask.
 
 ## Last Updated
-2026-07-21
+2026-08-06

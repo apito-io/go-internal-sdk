@@ -4,6 +4,12 @@ Not git history — the *reasoning* behind changes. Newest on top.
 Format per entry: date, **Changed**, **Why**, **Affected**.
 
 ---
+## 2026-08-06 — v2.6.8 OAuthState + multi-provider LoginUser
+
+- **Changed:** `OAuthState`; LoginUser auth_method facebook/github/x/linkedin.
+- **Why:** Match engine multi-provider app-user OAuth.
+- **Affected:** `client.go`, `version.go` **2.6.8**, CHANGELOG.
+
 ## 2026-07-21
 - **Changed:** Added `Config.ProjectID`, canonical scoped GraphQL/REST project
   headers, and explicit method project overrides with tenant context preserved.
