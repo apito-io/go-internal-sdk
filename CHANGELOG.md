@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.8] - 2026-08-05
+
+### Added
+
+- **`OAuthState`** + `LoginUser` auth methods `facebook` / `github` / `x` / `linkedin` (code+state).
+
 ## [2.6.7] - 2026-07-27
 
 ### Fixed

@@ -365,6 +365,13 @@ func (c *Client) LoginUser(ctx context.Context, projectID string, params LoginUs
 		variables["auth_method"] = "google"
 		variables["code"] = strings.TrimSpace(params.Code)
 		variables["state"] = strings.TrimSpace(params.State)
+	} else if authMethod == "facebook" || authMethod == "github" || authMethod == "x" || authMethod == "linkedin" {
+		if strings.TrimSpace(params.Code) == "" || strings.TrimSpace(params.State) == "" {
+			return nil, fmt.Errorf("loginUser: code and state are required for %s auth_method", authMethod)
+		}
+		variables["auth_method"] = authMethod
+		variables["code"] = strings.TrimSpace(params.Code)
+		variables["state"] = strings.TrimSpace(params.State)
 	} else if authMethod == "google_id_token" {
 		if strings.TrimSpace(params.IDToken) == "" {
 			return nil, fmt.Errorf("loginUser: id_token is required for google_id_token auth_method")
@@ -432,6 +439,35 @@ func (c *Client) GoogleOAuthState(ctx context.Context, projectID string) (*Googl
 	state, _ := raw["state"].(string)
 	if strings.TrimSpace(state) == "" {
 		return nil, fmt.Errorf("googleOAuthState: empty state")
+	}
+	return &GoogleOAuthStateResponse{State: state}, nil
+}
+
+// OAuthState fetches signed OAuth state for a provider (oauthState query).
+func (c *Client) OAuthState(ctx context.Context, projectID, provider string) (*GoogleOAuthStateResponse, error) {
+	query := `
+		query OAuthState($project_id: String!, $provider: String!) {
+			oauthState(project_id: $project_id, provider: $provider) {
+				state
+			}
+		}
+	`
+	variables := map[string]interface{}{"project_id": projectID, "provider": provider}
+	response, err := c.executeGraphQLScoped(ctx, query, variables, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("oauthState: %w", err)
+	}
+	data, ok := response.Data.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected response format")
+	}
+	raw, ok := data["oauthState"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected oauthState response")
+	}
+	state, _ := raw["state"].(string)
+	if strings.TrimSpace(state) == "" {
+		return nil, fmt.Errorf("oauthState: empty state")
 	}
 	return &GoogleOAuthStateResponse{State: state}, nil
 }
