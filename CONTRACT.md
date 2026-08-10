@@ -39,6 +39,7 @@ All SDKs expose:
 - **GraphQL CRUD** (secured endpoint chainable builder + system fallback)
 - **REST storage**: `uploadFile`, `listFiles`, `deleteFiles` at `/files/upload|list|delete`
 - **Auth/admin**: `generateTenantToken`, `getTenants`, `getTenant`, `searchTenants`, `createTenant`, `updateTenant`, `deleteTenant`, `loginUser`, `googleOAuthState`, `searchUsers`, `searchTenantsByDomain`, `createUser`, `updateUser`, `resetUserPassword`, `deleteUser`
+- **Tenant plan access (app-user JWT on secured/public)**: `myTenant` (includes `plan_tier`), `myEffectivePermissions` (role ∩ plan ceiling, quotas, grace). Helpers: plan tier parse/rank (`parsePlanTier` / `PlanAtLeast`), `canFromSnapshot`, `isPlanQuotaError`. JS also exports Casbin policy builder + React `CasbinProvider` via `@apito-io/js-admin-sdk/access` and `/react`.
 
 Pro SaaS user ops accept optional **`TenantID`** / GraphQL `tenant_id` on `SearchUsers`, `CreateUser`, and `UpdateUser` (in addition to `LoginUser`). Omit on general projects. **`SearchUsers`** also accepts optional **`q`** (6th arg) for free-text filter on email, username, phone, or id.
 

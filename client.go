@@ -321,6 +321,9 @@ func mapToTenantCatalogSearchRow(m map[string]interface{}) *TenantCatalogSearchR
 	if v, ok := m["created_at"].(string); ok {
 		r.CreatedAt = v
 	}
+	if v, ok := m["plan_tier"].(string); ok {
+		r.PlanTier = v
+	}
 	return r
 }
 
@@ -595,6 +598,7 @@ func (c *Client) SearchTenants(ctx context.Context, projectID string, limit, off
 					icon
 					data
 					created_at
+					plan_tier
 				}
 			}
 		}
@@ -734,6 +738,86 @@ func (c *Client) GetTenants(ctx context.Context) (*GetTenantsResponse, error) {
 		}
 	}
 	return &GetTenantsResponse{Tenants: tenants}, nil
+}
+
+// MyTenant loads public GraphQL myTenant for the authenticated app-user token (includes plan_tier).
+// Call against /secured/graphql (or public) with the JWT from LoginUser.
+func (c *Client) MyTenant(ctx context.Context) (*MyTenant, error) {
+	query := `
+		query MyTenant {
+			myTenant {
+				id
+				name
+				domain
+				status
+				plan_tier
+			}
+		}
+	`
+	response, err := c.executeGraphQL(ctx, query, nil)
+	if err != nil {
+		return nil, fmt.Errorf("myTenant: %w", err)
+	}
+	data, ok := response.Data.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected response format")
+	}
+	raw, ok := data["myTenant"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected myTenant response")
+	}
+	out := &MyTenant{}
+	if v, ok := raw["id"].(string); ok {
+		out.ID = v
+	}
+	if strings.TrimSpace(out.ID) == "" {
+		return nil, fmt.Errorf("invalid myTenant response: missing id")
+	}
+	if v, ok := raw["name"].(string); ok {
+		out.Name = v
+	}
+	if v, ok := raw["domain"].(string); ok {
+		out.Domain = v
+	}
+	if v, ok := raw["status"].(string); ok {
+		out.Status = v
+	}
+	if v, ok := raw["plan_tier"].(string); ok {
+		out.PlanTier = v
+	}
+	return out, nil
+}
+
+// MyEffectivePermissions loads public GraphQL myEffectivePermissions (role ∩ plan ceiling).
+func (c *Client) MyEffectivePermissions(ctx context.Context) (*EffectivePermissionsSnapshot, error) {
+	query := `
+		query MyEffectivePermissions {
+			myEffectivePermissions {
+				plan_slug
+				role_id
+				plan_clamped
+				api_permissions
+				logic_executions
+				quotas
+				usage
+				grace_models
+				is_admin
+			}
+		}
+	`
+	response, err := c.executeGraphQL(ctx, query, nil)
+	if err != nil {
+		return nil, fmt.Errorf("myEffectivePermissions: %w", err)
+	}
+	data, ok := response.Data.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected response format")
+	}
+	raw, ok := data["myEffectivePermissions"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected myEffectivePermissions response")
+	}
+	return ParseEffectivePermissionsSnapshot(raw)
 }
 
 // CreateTenant provisions a SaaS catalog tenant (system GraphQL only; not /secured/graphql).

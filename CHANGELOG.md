@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-08-10
+
+### Added
+
+- **`MyTenant` / `MyEffectivePermissions`** on app-user secured GraphQL (includes `plan_tier`).
+- **Access helpers** in `access.go`: `ParsePlanTier`, `PlanAtLeast`, `CanFromSnapshot`,
+  `IsPlanQuotaError` (parity with JS/Flutter admin SDKs).
+- **`plan_tier`** on catalog tenant search rows.
+
 ## [2.6.8] - 2026-08-05
 
 ### Added

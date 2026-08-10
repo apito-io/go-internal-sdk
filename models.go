@@ -81,6 +81,38 @@ type TenantCatalogSearchRow struct {
 	Data      string `json:"data"`
 	Icon      string `json:"icon,omitempty"`
 	CreatedAt string `json:"created_at,omitempty"`
+	PlanTier  string `json:"plan_tier,omitempty"`
+}
+
+// MyTenant is public GraphQL myTenant for the authenticated app-user token.
+type MyTenant struct {
+	ID       string `json:"id"`
+	Name     string `json:"name,omitempty"`
+	Domain   string `json:"domain,omitempty"`
+	Status   string `json:"status,omitempty"`
+	PlanTier string `json:"plan_tier,omitempty"`
+}
+
+// EffectiveModelPermission is one api_permissions entry from myEffectivePermissions.
+type EffectiveModelPermission struct {
+	Read   string `json:"read,omitempty"`
+	Create string `json:"create,omitempty"`
+	Update string `json:"update,omitempty"`
+	Delete string `json:"delete,omitempty"`
+	Grace  bool   `json:"grace,omitempty"`
+}
+
+// EffectivePermissionsSnapshot mirrors engine myEffectivePermissions.
+type EffectivePermissionsSnapshot struct {
+	PlanSlug        string                               `json:"plan_slug,omitempty"`
+	RoleID          string                               `json:"role_id,omitempty"`
+	PlanClamped     bool                                 `json:"plan_clamped,omitempty"`
+	APIPermissions  map[string]*EffectiveModelPermission `json:"api_permissions,omitempty"`
+	LogicExecutions []string                             `json:"logic_executions,omitempty"`
+	Quotas          map[string]float64                   `json:"quotas,omitempty"`
+	Usage           map[string]float64                   `json:"usage,omitempty"`
+	GraceModels     []string                             `json:"grace_models,omitempty"`
+	IsAdmin         bool                                 `json:"is_admin,omitempty"`
 }
 
 // TenantByDomainResponse is returned by searchTenantsByDomain (at most one match per project).
