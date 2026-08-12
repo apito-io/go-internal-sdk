@@ -4,6 +4,14 @@ Not git history — the *reasoning* behind changes. Newest on top.
 Format per entry: date, **Changed**, **Why**, **Affected**.
 
 ---
+## 2026-08-12 — ApitoProjectPayment REST
+
+- **Changed:** `VerifyProjectPayment` / `GetTenantSubscription` /
+  `CancelTenantSubscription` + `ProjectTenantSubscription`;
+  `deriveSystemAPIBaseURL`; CONTRACT/CHANGELOG.
+- **Why:** Parity with Flutter/JS for engine-owned Play cancel/verify.
+- **Affected:** `project_payment.go`, tests, CONTRACT. Ask before commit.
+
 ## 2026-08-06 — v2.6.8 OAuthState + multi-provider LoginUser
 
 - **Changed:** `OAuthState`; LoginUser auth_method facebook/github/x/linkedin.
